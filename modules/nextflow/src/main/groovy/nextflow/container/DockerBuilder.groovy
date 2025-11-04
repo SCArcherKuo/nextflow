@@ -46,6 +46,8 @@ class DockerBuilder extends ContainerBuilder<DockerBuilder> {
 
     private boolean legacy = System.getenv('NXF_DOCKER_LEGACY')=='true'
 
+    private boolean autoMounts
+
     private String mountFlags0
 
     private String device
@@ -151,7 +153,9 @@ class DockerBuilder extends ContainerBuilder<DockerBuilder> {
             result << "-v $temp:/tmp "
 
         // mount the input folders
-        result << makeVolumes(mounts)
+        if ( autoMounts ) {
+            result << makeVolumes(mounts)
+        }
         result << '-w "$NXF_TASK_WORKDIR" '
 
         if( entryPoint )

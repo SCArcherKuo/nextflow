@@ -69,6 +69,12 @@ class DockerConfig implements ConfigScope, ContainerConfig {
 
     @ConfigOption
     @Description("""
+         Automatically mount the working directory inside the container (default: `true`).
+    """)
+    final boolean autoMounts
+
+    @ConfigOption
+    @Description("""
         Add the specified flags to the volume mounts e.g. `'ro,Z'`.
     """)
     final String mountFlags
@@ -131,6 +137,7 @@ class DockerConfig implements ConfigScope, ContainerConfig {
         fixOwnership = opts.fixOwnership as boolean
         kill = opts.kill != null ? opts.kill : true
         legacy = opts.legacy as boolean
+        autoMounts = opts.autoMounts != null ? opts.autoMounts as boolean : true
         mountFlags = opts.mountFlags
         registry = opts.registry
         registryOverride = opts.registryOverride as boolean
