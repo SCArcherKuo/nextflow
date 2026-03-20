@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2024, Seqera Labs
+ * Copyright 2013-2026, Seqera Labs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -300,63 +300,6 @@ class TaskProcessorTest extends Specification {
 
     }
 
-
-    def 'should get bin files in the script command' () {
-
-        given:
-        def session = Mock(Session)
-        session.getBinEntries() >> ['foo.sh': Paths.get('/some/path/foo.sh'), 'bar.sh': Paths.get('/some/path/bar.sh')]
-        def processor = [:] as TaskProcessor
-        processor.session = session
-
-        when:
-        def result = processor.getTaskBinEntries('var=x foo.sh')
-        then:
-        result.size()==1
-        result.contains(Paths.get('/some/path/foo.sh'))
-
-        when:
-        result = processor.getTaskBinEntries('echo $(foo.sh); bar.sh')
-        then:
-        result.size()==2
-        result.contains(Paths.get('/some/path/foo.sh'))
-        result.contains(Paths.get('/some/path/bar.sh'))
-
-    }
-
-    def 'should make task unique id' () {
-
-        given:
-        def session = Mock(Session) {
-            getUniqueId() >> UUID.fromString('b69b6eeb-b332-4d2c-9957-c291b15f498c')
-            getBinEntries() >> ['foo.sh': Paths.get('/some/path/foo.sh'), 'bar.sh': Paths.get('/some/path/bar.sh')]
-        }
-        and:
-        def task = Mock(TaskRun) {
-            getSource() >> 'hello world'
-            isContainerEnabled() >> false
-            getContainer() >> null
-            getConfig() >> Mock(TaskConfig)
-        }
-        and:
-        def processor = Spy(TaskProcessor)
-        processor.@session = session
-        processor.@config = Mock(ProcessConfig)
-
-        when:
-        def uuid1 = processor.createTaskHashKey(task)
-        def uuid2 = processor.createTaskHashKey(task)
-        then:
-        // global var should *not* change task hash
-        processor.getTaskGlobalVars(task) >>> [
-                [foo:'a', bar:'b'],
-                [bar:'b', foo:'a']
-        ]
-        and:
-        uuid1 == uuid2
-
-    }
-
     def 'should export env vars' () {
 
         given:
@@ -385,34 +328,6 @@ class TaskProcessorTest extends Specification {
         then:
         env == "export FOO=''\nexport BAR=''\n"
 
-    }
-
-    def 'should get task directive vars' () {
-        given:
-        def processor = Spy(TaskProcessor)
-        processor.@config = Mock(ProcessConfig)
-        and:
-        def task = Mock(TaskRun)
-        and:
-        def config = new TaskConfig()
-        config.cpus = 4
-        config.ext.alpha = 'AAAA'
-        config.ext.delta = { foo }
-        config.ext.omega = "${-> bar}"
-        and:
-        config.setContext( foo: 'DDDD', bar: 'OOOO' )
-
-        when:
-        def result = processor.getTaskExtensionDirectiveVars(task)
-        then:
-        1 * task.getVariableNames() >> {[ 'task.cpus', 'task.ext.alpha', 'task.ext.delta', 'task.ext.omega' ] as Set}
-        1 * task.getConfig() >> config
-        then:
-        result == [
-                'task.ext.alpha': 'AAAA',
-                'task.ext.delta': 'DDDD',
-                'task.ext.omega': 'OOOO',
-        ]
     }
 
     def 'should bind fair outputs' () {
@@ -458,7 +373,7 @@ class TaskProcessorTest extends Specification {
         then:
         1 * processor.bindOutputs0(task3)
         and:
-        processor.@fairBuffers.size() == 2 
+        processor.@fairBuffers.size() == 2
         processor.@fairBuffers[0] == null
         processor.@fairBuffers[1] == task5
 
@@ -702,28 +617,5 @@ class TaskProcessorTest extends Specification {
         and:
         0 * collector.collect(task)
         1 * exec.submit(task)
-    }
-
-    def 'should compute eval outputs content deterministically'() {
-
-        setup:
-        def processor = createProcessor('test', Mock(Session))
-
-        when:
-        def result1 = processor.computeEvalOutputsContent([
-            'nxf_out_eval_2': 'echo "value2"',
-            'nxf_out_eval_1': 'echo "value1"',
-            'nxf_out_eval_3': 'echo "value3"'
-        ])
-        
-        def result2 = processor.computeEvalOutputsContent([
-            'nxf_out_eval_3': 'echo "value3"',
-            'nxf_out_eval_1': 'echo "value1"',
-            'nxf_out_eval_2': 'echo "value2"'
-        ])
-
-        then:
-        result1 == result2
-        result1 == 'nxf_out_eval_1=echo "value1"\nnxf_out_eval_2=echo "value2"\nnxf_out_eval_3=echo "value3"'
     }
 }

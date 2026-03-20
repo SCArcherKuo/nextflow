@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2024, Seqera Labs
+ * Copyright 2013-2026, Seqera Labs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ import nextflow.exception.ProcessSubmitException
 import nextflow.exception.ProcessUnrecoverableException
 import nextflow.executor.BashWrapperBuilder
 import nextflow.fusion.FusionAwareTask
+import nextflow.fusion.FusionConfig
 import nextflow.processor.BatchContext
 import nextflow.processor.BatchHandler
 import nextflow.processor.TaskArrayRun
@@ -583,7 +584,7 @@ class AwsBatchTaskHandler extends TaskHandler implements BatchHandler<String,Job
 
         if( opts.executionRole )
             container.executionRoleArn(opts.executionRole)
-        
+
         final logsGroup = opts.getLogsGroup()
         if( logsGroup )
             container.logConfiguration(getLogConfiguration(logsGroup, opts.getRegion()))
@@ -615,7 +616,7 @@ class AwsBatchTaskHandler extends TaskHandler implements BatchHandler<String,Job
             final diskGb = task.config.getDisk()?.toGiga()?.toInteger() ?: 50
             container.ephemeralStorage( EphemeralStorage.builder().sizeInGiB(diskGb).build() )
             // check for arm64 cpu architecture
-            if( task.config.getArchitecture()?.arch == 'arm64' )
+            if( task.config.getArchitecture()?.dockerArch == 'linux/arm64' )
                 container.runtimePlatform(RuntimePlatform.builder().cpuArchitecture('ARM64').build())
         }
 
@@ -632,7 +633,7 @@ class AwsBatchTaskHandler extends TaskHandler implements BatchHandler<String,Job
         return result
     }
 
-    @Memoized 
+    @Memoized
     LogConfiguration getLogConfiguration(String name, String region) {
         LogConfiguration.builder()
             .logDriver('awslogs')
@@ -753,7 +754,7 @@ class AwsBatchTaskHandler extends TaskHandler implements BatchHandler<String,Job
             return result
         // when fusion snapshot is enabled max attempt should be > 0
         // to enable to allow snapshot retry the job execution in a new ec2 instance
-        return fusionEnabled() && fusionConfig().snapshotsEnabled() ? 5 : 0
+        return fusionEnabled() && fusionConfig().snapshotsEnabled() ? FusionConfig.DEFAULT_SNAPSHOT_MAX_SPOT_ATTEMPTS : 0
     }
 
     protected String getJobName(TaskRun task) {
@@ -916,10 +917,48 @@ class AwsBatchTaskHandler extends TaskHandler implements BatchHandler<String,Job
         return machineInfo
     }
 
+    /**
+     * Count the number of spot instance reclamations for this job by examining
+     * the job attempts and checking for EC2 spot interruption status reasons
+     *
+     * @param jobId The AWS Batch Job Id
+     * @return The number of times this job was retried due to spot instance reclamation
+     */
+    protected Integer getNumSpotInterruptions(String jobId) {
+        if (!jobId || !isCompleted())
+            return null
+
+        try {
+            def job = describeJob(jobId)
+            if (!job)
+                return null
+            if (!job.attempts())
+                return 0
+
+            int count = 0
+            for (def attempt : job.attempts()) {
+                // Check attempt-level statusReason
+                def attemptReason = attempt.statusReason()
+                // AWS Batch uses "Host EC2 (instance i-xxx) terminated." pattern for spot interruptions
+                // Using startsWith to match the pattern regardless of instance ID
+                if (attemptReason && attemptReason.startsWith('Host EC2')) {
+                    count++
+                }
+            }
+            log.trace "Job $jobId had $count spot interruptions"
+            return count
+        }
+        catch (Exception e) {
+            log.debug "[AWS BATCH] Unable to count spot interruptions for job=$jobId - ${e.message}"
+            return null
+        }
+    }
+
     TraceRecord getTraceRecord() {
         def result = super.getTraceRecord()
         result.put('native_id', jobId)
         result.machineInfo = getMachineInfo()
+        result.numSpotInterruptions = getNumSpotInterruptions(jobId)
         return result
     }
 

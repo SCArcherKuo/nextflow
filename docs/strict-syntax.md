@@ -9,7 +9,15 @@ If you are still using DSL1, see {ref}`dsl1-page` to learn how to migrate your N
 :::
 
 :::{versionadded} 25.04.0
-The strict syntax can be enabled in Nextflow by setting the environment variable `NXF_SYNTAX_PARSER=v2`.
+To enable strict syntax, set the `NXF_SYNTAX_PARSER` environment variable to `v2`:
+
+```bash
+export NXF_SYNTAX_PARSER=v2
+```
+:::
+
+:::{versionchanged} 26.04.0
+The strict syntax is enabled by default. You can disable it by setting the environment variable `NXF_SYNTAX_PARSER=v1`.
 :::
 
 ## Overview
@@ -42,13 +50,28 @@ def json = new groovy.json.JsonSlurper().parseText(json_file.text)
 
 Some users use classes in Nextflow to define helper functions or custom types. Helper functions should be defined as standalone functions in Nextflow. Custom types should be moved to the `lib` directory.
 
-:::{note}
-Enums, a special type of class, are supported, but they cannot be included across modules at this time.
+You can use an enum type to model a choice between a fixed set of categories:
+
+```nextflow
+enum Color {
+    RED,
+    GREEN,
+    BLUE
+}
+```
+
+:::{versionadded} 26.04.0
 :::
 
-:::{note}
-Record types will be addressed in a future version of the Nextflow language specification.
-:::
+You can use a record type to model a composition of multiple values:
+
+```nextflow
+record FastqPair {
+    id: String
+    fastq_1: Path
+    fastq_2: Path
+}
+```
 
 ### Mixing script declarations and statements
 
@@ -222,13 +245,14 @@ In the strict syntax, use `System.getenv()` instead:
 println "PWD = ${System.getenv('PWD')}"
 ```
 
-:::{versionadded} 24.04.0
-The `env()` function should be used instead of `System.getenv()`:
+:::{versionadded} 25.04.0
+:::
+
+Use the `env()` function instead of `System.getenv()`:
 
 ```nextflow
 println "PWD = ${env('PWD')}"
 ```
-:::
 
 ## Restricted syntax
 
@@ -568,10 +592,16 @@ The process {ref}`process-when` section is discouraged. As a best practice, cond
 ## Configuration syntax
 
 :::{versionadded} 25.04.0
-The strict config syntax can be enabled in Nextflow by setting the environment variable `NXF_SYNTAX_PARSER=v2`.
+To enable the {ref}`strict syntax <strict-syntax-page>`, set the `NXF_SYNTAX_PARSER` environment variable to `v2`:
+
+```bash
+export NXF_SYNTAX_PARSER=v2
+```
 :::
 
 See {ref}`Configuration <config-syntax>` for a comprehensive description of the configuration language.
+
+### Mixing config statements and scripting statements
 
 Currently, Nextflow parses config files as Groovy scripts, allowing the use of scripting constructs like variables, helper functions, try-catch blocks, and conditional logic for dynamic configuration:
 
@@ -613,10 +643,30 @@ Each conditional configuration is defined in a separate config file:
 // small.config
 params.max_memory = 32.GB
 params.max_cpus = 8
+```
 
+```groovy
 // large.config
 params.max_memory = 128.GB
 params.max_cpus = 32
+```
+
+### Referencing config settings as variables
+
+The legacy parser allows config settings to be referenced like variables:
+
+```groovy
+google.location = "us-west1"
+google.batch.subnetwork = "regions/${google.location}/subnetworks/default"
+```
+
+The strict config syntax does not support this. Only params can be referenced as variables:
+
+```groovy
+params.location = "us-west1"
+
+google.location = params.location
+google.batch.subnetwork = "regions/${params.location}/subnetworks/default"
 ```
 
 ## Preserving Groovy code

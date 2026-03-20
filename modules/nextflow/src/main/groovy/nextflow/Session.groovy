@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2024, Seqera Labs
+ * Copyright 2013-2026, Seqera Labs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ import nextflow.script.ScriptRunner
 import nextflow.script.WorkflowMetadata
 import nextflow.script.dsl.ProcessConfigBuilder
 import nextflow.spack.SpackConfig
-import nextflow.trace.AnsiLogObserver
+import nextflow.trace.LogObserver
 import nextflow.trace.TraceObserver
 import nextflow.trace.TraceObserverFactory
 import nextflow.trace.TraceObserverFactoryV2
@@ -80,7 +80,7 @@ import nextflow.trace.event.FilePublishEvent
 import nextflow.trace.event.TaskEvent
 import nextflow.trace.event.WorkflowOutputEvent
 import nextflow.util.Barrier
-import nextflow.util.ConfigHelper
+import nextflow.util.ClassLoaderFactory
 import nextflow.util.Duration
 import nextflow.util.HistoryFile
 import nextflow.util.LoggerHelper
@@ -311,9 +311,11 @@ class Session implements ISession {
 
     boolean ansiLog
 
+    boolean agentLog
+
     boolean disableJobsCancellation
 
-    AnsiLogObserver ansiLogObserver
+    LogObserver logObserver
 
     FilePorter getFilePorter() { filePorter }
 
@@ -600,21 +602,8 @@ class Session implements ISession {
     ScriptBinding getBinding() { binding }
 
     @Memoized
-    ClassLoader getClassLoader() { getClassLoader0() }
-
-    @PackageScope
-    ClassLoader getClassLoader0() {
-        // extend the class-loader if required
-        final gcl = new GroovyClassLoader()
-        final libraries = ConfigHelper.resolveClassPaths(getLibDir())
-
-        for( Path lib : libraries ) {
-            def path = lib.complete()
-            log.debug "Adding to the classpath library: ${path}"
-            gcl.addClasspath(path.toString())
-        }
-
-        return gcl
+    ClassLoader getClassLoader() {
+        ClassLoaderFactory.create(getLibDir())
     }
 
     Barrier getBarrier() { monitorsBarrier }
@@ -832,7 +821,7 @@ class Session implements ISession {
             shutdown0()
             notifyError(null)
             // force termination
-            ansiLogObserver?.forceTermination()
+            logObserver?.forceTermination()
             executorFactory?.signalExecutors()
             processesBarrier.forceTermination()
             monitorsBarrier.forceTermination()
@@ -892,8 +881,7 @@ class Session implements ISession {
         final enabled = config.navigate('nextflow.enable.configProcessNamesValidation', true) as boolean
         if( enabled ) {
             final names = ScriptMeta.allProcessNames()
-            final ver = "dsl${NF.dsl1 ?'1' :'2'}"
-            log.debug "Workflow process names [$ver]: ${names.join(', ')}"
+            log.debug "Process names: ${names.join(', ')}"
             validateConfig(names)
         }
         else {
@@ -1054,7 +1042,6 @@ class Session implements ISession {
     }
 
     void notifyAfterWorkflowExecution() {
-
     }
 
     void notifyFlowBegin() {
@@ -1279,8 +1266,8 @@ class Session implements ISession {
     }
 
     void printConsole(String str, boolean newLine=false) {
-        if( ansiLogObserver )
-            ansiLogObserver.appendInfo(str)
+        if( logObserver )
+            logObserver.appendInfo(str)
         else if( newLine )
             System.out.println(str)
         else
@@ -1288,7 +1275,7 @@ class Session implements ISession {
     }
 
     void printConsole(Path file) {
-        ansiLogObserver ? ansiLogObserver.appendInfo(file.text) : Files.copy(file, System.out)
+        logObserver ? logObserver.appendInfo(file.text) : Files.copy(file, System.out)
     }
 
     private volatile ThreadPoolManager finalizePoolManager

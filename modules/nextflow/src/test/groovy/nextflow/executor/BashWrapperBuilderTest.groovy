@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2024, Seqera Labs
+ * Copyright 2013-2026, Seqera Labs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -768,7 +768,7 @@ class BashWrapperBuilderTest extends Specification {
                   local mod=$1
                   local ver=${2:-}
                   local new_module="$mod"; [[ $ver ]] && new_module+="/$ver"
-                
+
                   if [[ ! $(module list 2>&1 | grep -o "$new_module") ]]; then
                     old_module=$(module list 2>&1 | grep -Eow "$mod\\/[^\\( \\n]+" || true)
                     if [[ $ver && $old_module ]]; then
@@ -778,7 +778,7 @@ class BashWrapperBuilderTest extends Specification {
                     fi
                   fi
                 }
-                
+
                 '''.stripIndent()
     }
 
@@ -1127,7 +1127,7 @@ class BashWrapperBuilderTest extends Specification {
                 containerConfig: new SingularityConfig(enabled: true) ).makeBinding()
 
         then:
-        binding.launch_cmd == 'set +u; env - PATH="$PATH" ${TMP:+SINGULARITYENV_TMP="$TMP"} ${TMPDIR:+SINGULARITYENV_TMPDIR="$TMPDIR"} ${NXF_TASK_WORKDIR:+SINGULARITYENV_NXF_TASK_WORKDIR="$NXF_TASK_WORKDIR"} singularity exec --no-home --pid -B /work/dir docker://ubuntu:latest /bin/bash -c "cd $NXF_TASK_WORKDIR; eval $(nxf_container_env); /bin/bash -ue /work/dir/.command.sh"'
+        binding.launch_cmd == 'set +u; env - PATH="$PATH" ${TMP:+SINGULARITYENV_TMP="$TMP"} ${TMPDIR:+SINGULARITYENV_TMPDIR="$TMPDIR"} ${NXF_TASK_WORKDIR:+SINGULARITYENV_NXF_TASK_WORKDIR="$NXF_TASK_WORKDIR"} singularity exec --no-home --pid -B /work/dir docker://ubuntu:latest /bin/bash -c "cd \\"$NXF_TASK_WORKDIR\\"; eval $(nxf_container_env); /bin/bash -ue /work/dir/.command.sh"'
         binding.cleanup_cmd == ""
         binding.kill_cmd == '[[ "$pid" ]] && nxf_kill $pid'
     }
@@ -1141,7 +1141,7 @@ class BashWrapperBuilderTest extends Specification {
             containerConfig: new SingularityConfig(enabled: true) ).makeBinding()
 
         then:
-        binding.launch_cmd == 'set +u; env - PATH="$PATH" ${TMP:+SINGULARITYENV_TMP="$TMP"} ${TMPDIR:+SINGULARITYENV_TMPDIR="$TMPDIR"} ${NXF_TASK_WORKDIR:+SINGULARITYENV_NXF_TASK_WORKDIR="$NXF_TASK_WORKDIR"} singularity exec --no-home --pid -B /work/dir docker://ubuntu:latest /bin/bash -c "cd $NXF_TASK_WORKDIR; /bin/bash -ue /work/dir/.command.sh"'
+        binding.launch_cmd == 'set +u; env - PATH="$PATH" ${TMP:+SINGULARITYENV_TMP="$TMP"} ${TMPDIR:+SINGULARITYENV_TMPDIR="$TMPDIR"} ${NXF_TASK_WORKDIR:+SINGULARITYENV_NXF_TASK_WORKDIR="$NXF_TASK_WORKDIR"} singularity exec --no-home --pid -B /work/dir docker://ubuntu:latest /bin/bash -c "cd \\"$NXF_TASK_WORKDIR\\"; /bin/bash -ue /work/dir/.command.sh"'
         binding.cleanup_cmd == ""
         binding.kill_cmd == '[[ "$pid" ]] && nxf_kill $pid'
     }
@@ -1155,7 +1155,7 @@ class BashWrapperBuilderTest extends Specification {
                 containerConfig: new SingularityConfig(enabled: true, entrypointOverride: true) ).makeBinding()
 
         then:
-        binding.launch_cmd == 'set +u; env - PATH="$PATH" ${TMP:+SINGULARITYENV_TMP="$TMP"} ${TMPDIR:+SINGULARITYENV_TMPDIR="$TMPDIR"} ${NXF_TASK_WORKDIR:+SINGULARITYENV_NXF_TASK_WORKDIR="$NXF_TASK_WORKDIR"} singularity exec --no-home --pid -B /work/dir docker://ubuntu:latest /bin/bash -c "cd $NXF_TASK_WORKDIR; eval $(nxf_container_env); /bin/bash -ue /work/dir/.command.sh"'
+        binding.launch_cmd == 'set +u; env - PATH="$PATH" ${TMP:+SINGULARITYENV_TMP="$TMP"} ${TMPDIR:+SINGULARITYENV_TMPDIR="$TMPDIR"} ${NXF_TASK_WORKDIR:+SINGULARITYENV_NXF_TASK_WORKDIR="$NXF_TASK_WORKDIR"} singularity exec --no-home --pid -B /work/dir docker://ubuntu:latest /bin/bash -c "cd \\"$NXF_TASK_WORKDIR\\"; eval $(nxf_container_env); /bin/bash -ue /work/dir/.command.sh"'
         binding.cleanup_cmd == ""
         binding.kill_cmd == '[[ "$pid" ]] && nxf_kill $pid'
     }
@@ -1169,7 +1169,7 @@ class BashWrapperBuilderTest extends Specification {
             containerConfig: new SingularityConfig(enabled: true, ociMode: true) ).makeBinding()
 
         then:
-        binding.launch_cmd == 'set +u; env - PATH="$PATH" ${TMP:+SINGULARITYENV_TMP="$TMP"} ${TMPDIR:+SINGULARITYENV_TMPDIR="$TMPDIR"} ${XDG_RUNTIME_DIR:+XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR"} ${DBUS_SESSION_BUS_ADDRESS:+DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS"} ${NXF_TASK_WORKDIR:+SINGULARITYENV_NXF_TASK_WORKDIR="$NXF_TASK_WORKDIR"} singularity exec --no-home --oci -B /work/dir docker://ubuntu:latest /bin/bash -c "cd $NXF_TASK_WORKDIR; eval $(nxf_container_env); /bin/bash -ue /work/dir/.command.sh"'
+        binding.launch_cmd == 'set +u; env - PATH="$PATH" ${TMP:+SINGULARITYENV_TMP="$TMP"} ${TMPDIR:+SINGULARITYENV_TMPDIR="$TMPDIR"} ${XDG_RUNTIME_DIR:+XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR"} ${DBUS_SESSION_BUS_ADDRESS:+DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS"} ${NXF_TASK_WORKDIR:+SINGULARITYENV_NXF_TASK_WORKDIR="$NXF_TASK_WORKDIR"} singularity exec --no-home --oci -B /work/dir docker://ubuntu:latest /bin/bash -c "cd \\"$NXF_TASK_WORKDIR\\"; eval $(nxf_container_env); /bin/bash -ue /work/dir/.command.sh"'
         binding.cleanup_cmd == ""
         binding.kill_cmd == '[[ "$pid" ]] && nxf_kill $pid'
     }
@@ -1266,7 +1266,7 @@ class BashWrapperBuilderTest extends Specification {
             set +u
             set +e
             cd "$NXF_TASK_WORKDIR"
-            
+
             nxf_eval_cmd() {
                 {
                     IFS=$'\\n' read -r -d '' "${1}";
@@ -1274,7 +1274,7 @@ class BashWrapperBuilderTest extends Specification {
                     (IFS=$'\\n' read -r -d '' _ERRNO_; return ${_ERRNO_});
                 } < <((printf '\\0%s\\0%d\\0' "$(((({ shift 2; "${@}"; echo "${?}" 1>&3-; } | tr -d '\\0' 1>&4-) 4>&2- 2>&1- | tr -d '\\0' 1>&4-) 3>&1- | exit "$(cat)") 4>&1-)" "${?}" 1>&2) 2>&1)
             }
-            
+
             echo '' > .command.env
             #
             echo FOO="${FOO[@]}" >> .command.env
@@ -1298,7 +1298,7 @@ class BashWrapperBuilderTest extends Specification {
             set +u
             set +e
             cd "$NXF_TASK_WORKDIR"
-            
+
             nxf_eval_cmd() {
                 {
                     IFS=$'\\n' read -r -d '' "${1}";
@@ -1306,7 +1306,7 @@ class BashWrapperBuilderTest extends Specification {
                     (IFS=$'\\n' read -r -d '' _ERRNO_; return ${_ERRNO_});
                 } < <((printf '\\0%s\\0%d\\0' "$(((({ shift 2; "${@}"; echo "${?}" 1>&3-; } | tr -d '\\0' 1>&4-) 4>&2- 2>&1- | tr -d '\\0' 1>&4-) 3>&1- | exit "$(cat)") 4>&1-)" "${?}" 1>&2) 2>&1)
             }
-            
+
             echo '' > .command.env
             #
             echo FOO="${FOO[@]}" >> .command.env

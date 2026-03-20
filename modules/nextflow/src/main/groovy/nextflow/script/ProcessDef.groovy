@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2024, Seqera Labs
+ * Copyright 2013-2026, Seqera Labs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -94,12 +94,6 @@ class ProcessDef extends BindableDef implements IterableDef, ChainableDef {
         str.split(Const.SCOPE_SEP).last()
     }
 
-    protected void initialize() {
-        // apply config settings to the process
-        final configProcessScope = (Map)session.config.process
-        new ProcessConfigBuilder(processConfig).applyConfig(configProcessScope, baseName, simpleName, processName)
-    }
-
     @Override
     ProcessDef clone() {
         def result = (ProcessDef)super.clone()
@@ -144,9 +138,6 @@ class ProcessDef extends BindableDef implements IterableDef, ChainableDef {
 
     @Override
     Object run(Object[] args) {
-        // initialise process config
-        initialize()
-
         // invoke process with legacy inputs/outputs
         if( processConfig instanceof ProcessConfigV1 )
             output = runV1(args, processConfig)
@@ -160,7 +151,7 @@ class ProcessDef extends BindableDef implements IterableDef, ChainableDef {
     }
 
     private ChannelOut runV1(Object[] args, ProcessConfigV1 config) {
-        // get params 
+        // get params
         final params = ChannelOut.spread(args)
         final declaredInputs = config.getInputs()
         final declaredOutputs = config.getOutputs()
@@ -261,14 +252,23 @@ class ProcessDef extends BindableDef implements IterableDef, ChainableDef {
     }
 
     TaskProcessor createTaskProcessor() {
-        if( !processConfig )
-            initialize()
+        // apply process directives from config settings
+        applyConfig()
+
+        // create executor for process
         final executor = session
             .executorFactory
             .getExecutor(processName, processConfig, taskBody, session)
+
+        // create task processor for process
         return session
             .newProcessFactory(owner)
             .newTaskProcessor(processName, executor, processConfig, taskBody)
+    }
+
+    protected void applyConfig() {
+        final configProcessScope = (Map)session.config.process
+        new ProcessConfigBuilder(processConfig).applyConfig(configProcessScope, baseName, simpleName, processName)
     }
 
 }

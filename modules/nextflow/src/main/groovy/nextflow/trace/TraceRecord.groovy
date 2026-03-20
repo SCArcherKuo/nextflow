@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2024, Seqera Labs
+ * Copyright 2013-2026, Seqera Labs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -103,7 +103,9 @@ class TraceRecord implements Serializable {
             vol_ctxt: 'num',        // -- /proc/$pid/status field 'voluntary_ctxt_switches'
             inv_ctxt: 'num',        // -- /proc/$pid/status field 'nonvoluntary_ctxt_switches'
             hostname: 'str',
-            cpu_model:  'str'
+            cpu_model:  'str',
+            accelerator: 'num',
+            accelerator_type: 'str'
     ]
 
     static public Map<String,Closure<String>> FORMATTER = [
@@ -121,6 +123,8 @@ class TraceRecord implements Serializable {
     transient private String executorName
     transient private CloudMachineInfo machineInfo
     transient private ContainerMeta containerMeta
+    transient private Integer numSpotInterruptions
+    transient private String logStreamId
 
     /**
      * Convert the given value to a string
@@ -609,6 +613,22 @@ class TraceRecord implements Serializable {
 
     void setMachineInfo(CloudMachineInfo value) {
         this.machineInfo = value
+    }
+
+    Integer getNumSpotInterruptions() {
+        return numSpotInterruptions
+    }
+
+    void setNumSpotInterruptions(Integer numSpotInterruptions) {
+        this.numSpotInterruptions = numSpotInterruptions
+    }
+
+    String getLogStreamId() {
+        return logStreamId
+    }
+
+    void setLogStreamId(String logStreamId) {
+        this.logStreamId = logStreamId
     }
 
     ContainerMeta getContainerMeta() {

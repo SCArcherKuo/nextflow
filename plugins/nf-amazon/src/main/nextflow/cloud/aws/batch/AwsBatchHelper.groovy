@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2024, Seqera Labs
+ * Copyright 2013-2026, Seqera Labs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import software.amazon.awssdk.services.batch.model.DescribeJobsRequest
 import software.amazon.awssdk.services.ec2.Ec2Client
 import software.amazon.awssdk.services.ec2.model.DescribeInstancesRequest
 import software.amazon.awssdk.services.ec2.model.Instance
+import software.amazon.awssdk.services.ec2.model.InstanceLifecycleType
 import software.amazon.awssdk.services.ecs.EcsClient
 import software.amazon.awssdk.services.ecs.model.DescribeContainerInstancesRequest
 import software.amazon.awssdk.services.ecs.model.DescribeTasksRequest
@@ -171,7 +172,7 @@ class AwsBatchHelper {
     }
 
     private PriceModel getPrice(Instance instance) {
-        instance.instanceLifecycle()=='spot' ? PriceModel.spot : PriceModel.standard
+        instance.instanceLifecycle() == InstanceLifecycleType.SPOT ? PriceModel.spot : PriceModel.standard
     }
 
     CloudMachineInfo getCloudInfoByQueueAndTaskArn(String queue, String taskArn) {
@@ -227,7 +228,7 @@ class AwsBatchHelper {
         for( OutputLogEvent it : resp.events() ) {
             result.append(it.message()).append('\n')
         }
-        
+
         return result.toString()
     }
 

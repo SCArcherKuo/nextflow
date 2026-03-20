@@ -34,6 +34,7 @@ A Nextflow script may contain the following top-level declarations:
 - Process definitions
 - Function definitions
 - Enum types
+- Record types
 - Output block
 
 Script declarations are in turn composed of statements and expressions.
@@ -107,6 +108,8 @@ The following definitions can be included:
 - Functions
 - Processes
 - Named workflows
+- *New in 26.04:* Enum types
+- *New in 26.04:* Record types
 
 ### Params block
 
@@ -360,9 +363,17 @@ enum Day {
 
 Enum values in the above example can be accessed as `Day.MONDAY`, `Day.TUESDAY`, and so on.
 
-:::{note}
-Enum types cannot be included across modules at this time.
-:::
+### Record type
+
+A record type declaration consists of a name and a body. The body consists of one or more fields, where each field has a name and a type:
+
+```nextflow
+record FastqPair {
+    id: String
+    fastq_1: Path
+    fastq_2: Path
+}
+```
 
 ### Output block
 
@@ -601,6 +612,8 @@ catch( IOException e ) {
 ```
 
 The try block will be executed, and if an error is raised and matches the expected error type of a catch clause, the code in that catch clause will be executed. If no catch clause is matched, the error will be raised to the next enclosing try/catch statement, or to the Nextflow runtime.
+
+(syntax-expressions)=
 
 ## Expressions
 
@@ -1010,4 +1023,3 @@ The following legacy features were excluded from this page because they are depr
 - The `addParams` and `params` clauses of include declarations. See {ref}`module-params` for more information.
 - The `when:` section of a process definition. See {ref}`process-when` for more information.
 - The `shell:` section of a process definition. See {ref}`process-shell` for more information.
-- The implicit `it` closure parameter. See {ref}`script-closure` for more information.

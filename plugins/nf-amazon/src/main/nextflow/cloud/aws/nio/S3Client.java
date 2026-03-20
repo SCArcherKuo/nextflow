@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022, Seqera Labs
+ * Copyright 2013-2026, Seqera Labs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
 package nextflow.cloud.aws.nio;
@@ -287,6 +286,13 @@ public class S3Client {
 	public HeadObjectResponse getObjectMetadata(String bucketName, String key) {
 		return runWithPermit(() -> client.headObject(HeadObjectRequest.builder().bucket(bucketName).key(key).build()));
 	}
+
+    /**
+     * @see software.amazon.awssdk.services.s3.S3Client#headBucket
+     */
+    public HeadBucketResponse getBucketMetadata(String bucketName) {
+        return runWithPermit(() -> client.headBucket(HeadBucketRequest.builder().bucket(bucketName).build()));
+    }
 
 	public List<Tag> getObjectTags(String bucketName, String key) {
 		return runWithPermit(() -> client.getObjectTagging(GetObjectTaggingRequest.builder().bucket(bucketName).key(key).build()).tagSet());

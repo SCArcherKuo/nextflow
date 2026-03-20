@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025, Seqera Labs
+ * Copyright 2013-2026, Seqera Labs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,6 @@ import nextflow.script.ast.ProcessNodeV1;
 import nextflow.script.ast.ProcessNodeV2;
 import nextflow.script.ast.ScriptNode;
 import nextflow.script.ast.ScriptVisitorSupport;
-import nextflow.script.ast.TupleParameter;
 import nextflow.script.ast.WorkflowNode;
 import nextflow.script.dsl.Constant;
 import nextflow.script.dsl.EntryWorkflowDsl;
@@ -114,6 +113,7 @@ class VariableScopeVisitor extends ScriptVisitorSupport {
                 declareMethod(processNode);
             for( var functionNode : sn.getFunctions() )
                 declareMethod(functionNode);
+            declareTypes(sn);
         }
     }
 
@@ -159,15 +159,41 @@ class VariableScopeVisitor extends ScriptVisitorSupport {
         if( otherInclude != null ) {
             vsc.addError("`" + name + "` is already included", mn, "First included here", otherInclude);
         }
-        var otherMethods = cn.getDeclaredMethods(name);
-        if( otherMethods.size() > 0 ) {
-            var other = otherMethods.get(0);
+        var other = firstConflictingMethod(mn, cn);
+        if( other != null ) {
             var first = mn.getLineNumber() < other.getLineNumber() ? mn : other;
             var second = mn.getLineNumber() < other.getLineNumber() ? other : mn;
             vsc.addError("`" + name + "` is already declared", second, "First declared here", first);
             return;
         }
         cn.addMethod(mn);
+    }
+
+    private static MethodNode firstConflictingMethod(MethodNode mn, ClassNode cn) {
+        return cn.getDeclaredMethods(mn.getName()).stream()
+            .filter(other -> !(mn instanceof FunctionNode) || !(other instanceof FunctionNode))
+            .findFirst()
+            .orElse(null);
+    }
+
+    private void declareTypes(ScriptNode sn) {
+        var types = sn.getTypes();
+        for( int i = 0; i < types.size(); i++ ) {
+            var second = types.get(i);
+            // check includes
+            var name = second.getName();
+            var otherInclude = vsc.getInclude(name);
+            if( otherInclude != null ) {
+                vsc.addError("`" + name + "` is already included", second, "First included here", otherInclude);
+            }
+            // check declarations
+            for( int j = 0; j < i; j++ ) {
+                var first = types.get(j);
+                if( !first.getName().equals(second.getName()) )
+                    continue;
+                vsc.addError("`" + second.getName() + "` is already declared", second, "First declared here", first);
+            }
+        }
     }
 
     public void visit() {
@@ -284,8 +310,12 @@ class VariableScopeVisitor extends ScriptVisitorSupport {
         currentDefinition = node;
         node.setVariableScope(currentScope());
 
-        for( var input : asFlatParams(node.inputs) )
+        for( var input : asFlatParams(node.inputs) ) {
             vsc.declare(input, input);
+
+            // suppress "unused variable" warnings since Path inputs are implicity staged
+            vsc.findVariableDeclaration(input.getName(), input);
+        }
 
         vsc.pushScope(ProcessDsl.StageDsl.class);
         visitDirectives(node.stagers, "stage directive", false);

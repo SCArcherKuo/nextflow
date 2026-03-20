@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2024, Seqera Labs
+ * Copyright 2013-2026, Seqera Labs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package nextflow.script
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import groovyx.gpars.dataflow.DataflowVariable
 import nextflow.Session
 import nextflow.exception.ScriptRuntimeException
 import nextflow.extension.CH
@@ -33,7 +34,7 @@ class OutputDsl {
 
     private Map<String,Map> declarations = [:]
 
-    private volatile List<PublishOp> ops = []
+    private Map<String,DataflowVariable> dataflowOutputs = [:]
 
     void declare(String name, Closure closure) {
         if( declarations.containsKey(name) )
@@ -70,7 +71,12 @@ class OutputDsl {
             final opts = publishOptions(name, defaults, overrides)
 
             if( opts.enabled == null || opts.enabled )
-                ops << new PublishOp(session, name, CH.getReadChannel(source), opts).apply()
+                dataflowOutputs[name] = new PublishOp(session, name, CH.getReadChannel(source), opts).apply()
+        }
+
+        // retrieve workflow outputs in order to propagate any errors
+        session.addIgniter {
+            getOutput()
         }
     }
 
@@ -92,11 +98,8 @@ class OutputDsl {
         return opts
     }
 
-    boolean getComplete() {
-        for( final op : ops )
-            if( !op.complete )
-                return false
-        return true
+    Map<String,Object> getOutput() {
+        dataflowOutputs.collectEntries { name, dv -> [name, dv.get()] }
     }
 
     static class DeclareDsl {

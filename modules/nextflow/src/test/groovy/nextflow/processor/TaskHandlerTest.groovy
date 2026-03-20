@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2024, Seqera Labs
+ * Copyright 2013-2026, Seqera Labs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,7 +52,8 @@ class TaskHandlerTest extends Specification {
                 cpus: 2,
                 time: '1 hour',
                 disk: '100 GB',
-                memory: '4 GB'
+                memory: '4 GB',
+                accelerator: [request: 3, type: 'v100']
         ]
         def task = new TaskRun(id: new TaskId(100), workDir: folder, name:'task1', exitStatus: 127, config: config  )
         task.metaClass.getHashLog = { "5d5d7ds" }
@@ -100,6 +101,8 @@ class TaskHandlerTest extends Specification {
         trace.memory == MemoryUnit.of('4 GB').toBytes()
         trace.disk == MemoryUnit.of('100 GB').toBytes()
         trace.env == 'FOO=hola\nBAR=mundo\nAWS_SECRET=[secure]\n'
+        trace.accelerator == 3
+        trace.accelerator_type == 'v100'
 
         // check get method
         trace.getFmtStr('%cpu') == '1.0%'
@@ -241,7 +244,7 @@ class TaskHandlerTest extends Specification {
         handler.isSubmitted() == EXPECT_SUBMITTED
         handler.isActive() == EXPECTED_ACTIVE
         handler.isCompleted() == EXPECT_COMPLETE
-        
+
         where:
         STATUS              | EXPECT_NEW  | EXPECT_SUBMITTED | EXPECT_RUNNING | EXPECTED_ACTIVE | EXPECT_COMPLETE
         TaskStatus.NEW      | true        | false            | false          | false           | false
