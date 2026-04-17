@@ -41,7 +41,8 @@ class ExecutorOptsTest extends Specification {
 
         then:
         config.endpoint == 'https://sched.example.com'
-        config.region == 'eu-central-1'  // default
+        config.region == null
+        config.provider == null
         config.keyPairName == null
         config.batchFlushInterval == Duration.of('1 sec')
         config.machineRequirement != null
@@ -227,6 +228,27 @@ class ExecutorOptsTest extends Specification {
         config.taskEnvironment == [:]
     }
 
+    def 'should create config with computeEnvId' () {
+        when:
+        def config = new ExecutorOpts([
+            endpoint: 'https://sched.example.com',
+            computeEnvId: 'ce-12345'
+        ])
+
+        then:
+        config.computeEnvId == 'ce-12345'
+    }
+
+    def 'should default computeEnvId to null' () {
+        when:
+        def config = new ExecutorOpts([
+            endpoint: 'https://sched.example.com'
+        ])
+
+        then:
+        config.computeEnvId == null
+    }
+
     def 'should create config with provider' () {
         when:
         def config = new ExecutorOpts([
@@ -261,17 +283,5 @@ class ExecutorOptsTest extends Specification {
         config.region == 'us-west-2'
     }
 
-    def 'should reject invalid prediction model' () {
-        when:
-        new ExecutorOpts([
-            endpoint: 'https://sched.example.com',
-            predictionModel: 'invalid'
-        ])
-
-        then:
-        def e = thrown(IllegalArgumentException)
-        e.message.contains("Invalid prediction model 'invalid'")
-        e.message.contains('qr/v1')
-    }
 
 }

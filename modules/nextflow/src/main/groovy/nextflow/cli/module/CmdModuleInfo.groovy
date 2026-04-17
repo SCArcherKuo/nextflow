@@ -108,10 +108,10 @@ class CmdModuleInfo extends CmdBase {
 
         try {
             if( version ) {
-                release = registryClient.fetchRelease(reference.fullName, version)
+                release = registryClient.getModuleRelease(reference.fullName, version)
 
             } else {
-                release = registryClient.fetchModule(reference.fullName).latest
+                release = registryClient.getModule(reference.fullName).latest
             }
         } catch( Exception e ) {
             log.warn "Failed to fetch metadata from registry: ${e.message}"
@@ -161,7 +161,7 @@ class CmdModuleInfo extends CmdBase {
         // Generate and display usage template
         println ""
         println "Usage Template:"
-        println "-" * 80
+        println "---------------"
         println generateUsageTemplate(reference, metadata).join(" \\\n    ")
         println ""
     }
@@ -274,8 +274,7 @@ class CmdModuleInfo extends CmdBase {
     private static String buildModuleUrl(String registryUrl, ModuleReference reference, String version) {
         // Strip /api suffix to get the base UI URL
         def baseUrl = registryUrl.endsWith('/api') ? registryUrl[0..-5] : registryUrl
-        def encodedName = URLEncoder.encode(reference.name, 'UTF-8')
-        return "${baseUrl}/admin/modules/${reference.scope}/${encodedName}@${version}"
+        return "${baseUrl}/modules/${reference.fullName}@${version}"
     }
 
     private void printJsonInfo(ModuleReference reference, ModuleRelease release, String moduleUrl) {
